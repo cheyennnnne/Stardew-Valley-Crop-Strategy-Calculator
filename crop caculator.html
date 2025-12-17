@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星露谷作物利润计算器 (Pro Max版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: url('https://stardewvalleywiki.com/mediawiki/extensions/StardewValley/images/stardewbackground.png') repeat fixed;
+            background-color: #f0f4c3;
+            color: #4e342e;
+        }
+
+        .wood-panel {
+            background-color: rgba(215, 204, 200, 0.96);
+            border: 4px solid #8d6e63;
+            border-radius: 8px;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #5d4037;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #8d6e63;
+            border-radius: 4px;
+            background-color: rgba(255, 248, 225, 0.9);
+            color: #3e2723;
+        }
+
+        .btn-primary {
+            background-color: #66bb6a;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: 2px solid #388e3c;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        .btn-primary:active {
+            transform: translate(1px, 1px);
+        }
+
+        .crop-card {
+            background-color: rgba(255, 243, 224, 0.95);
+            border: 2px solid #bcaaa4;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .crop-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .strategy-card {
+            background-color: rgba(243, 229, 245, 0.95);
+            border: 2px solid #9c27b0;
+            border-radius: 8px;
+            margin-bottom: 0;
+            overflow: hidden;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .strategy-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(156, 39, 176, 0.2);
+            z-index: 10;
+        }
+
+        .strategy-summary {
+            cursor: pointer;
+            background-color: rgba(225, 190, 231, 0.95);
+            transition: background-color 0.2s;
+            outline: none;
+        }
+        .strategy-summary:hover {
+            background-color: rgba(206, 147, 216, 0.95);
+        }
+        .strategy-details {
+            padding: 16px;
+            background-color: rgba(243, 229, 245, 0.95);
+            border-top: 1px solid #ba68c8;
+        }
+
+        .rank-badge {
+            font-size: 0.8rem;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+            z-index: 20;
+        }
+        .rank-1 { background-color: #ffd700; color: #5d4037; border: 2px solid #ffb300; }
+        .rank-2 { background-color: #e0e0e0; color: #424242; border: 2px solid #bdbdbd; }
+        .rank-3 { background-color: #ffcc80; color: #5d4037; border: 2px solid #ff9800; }
+        .rank-other { background-color: #f5f5f5; color: #9e9e9e; border: 2px solid #e0e0e0; font-size: 0.75rem; }
+
+        details > summary {
+            list-style: none;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .crop-icon-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .crop-icon-img {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.1));
+            transition: transform 0.2s;
+        }
+        .crop-icon-img:hover {
+            transform: scale(1.1);
+        }
+
+        /* Custom Scrollbar for Filters */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #bcaaa4;
+            border-radius: 3px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #8d6e63;
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .data-table th {
+            background-color: rgba(141, 110, 99, 0.2);
+            color: #5d4037;
+            font-weight: bold;
+            padding: 6px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(2px);
+        }
+        .data-table td {
+            padding: 4px 6px;
+            border-bottom: 1px solid rgba(141, 110, 99, 0.1);
+        }
+        .data-table tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        .data-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.6);
+        }
+        .table-input {
+            width: 100%;
+            padding: 1px 4px;
+            border: 1px solid #bcaaa4;
+            border-radius: 3px;
+            background-color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<div class="max-w-6xl mx-auto">
+    <header class="text-center mb-8">
+        <h1 class="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-md" style="text-shadow: 2px 2px 0 #5d4037;">🌱 星露谷作物计算器</h1>
+        <p class="text-white font-bold drop-shadow-md" style="text-shadow: 1px 1px 0 #5d4037;">计算最佳种植方案</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Sidebar: Inputs -->
+        <div class="lg:col-span-4 space-y-6">
+            <!-- Farm Status -->
+            <div class="wood-panel p-6">
+                <h2 class="text-xl font-bold mb-4 border-b-2 border-brown-400 pb-2">📊 农场状况</h2>
+
+                <div class="space-y-4">
+                    <div class="input-group">
+                        <label>当前季节</label>
+                        <select id="seasonSelect" onchange="updateUI();">
+                            <option value="spring">🌸 春季 (Spring)</option>
+                            <option value="summer">☀️ 夏季 (Summer)</option>
+                            <option value="fall">🍂 秋季 (Fall)</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>当前日期 (1-28)</label>
+                        <input type="number" id="currentDay" min="1" max="28" value="1" onchange="calculate()">
+                        <p class="text-xs text-gray-700 font-bold mt-1">剩余天数: <span id="daysRemainingDisplay">27</span> 天</p>
+                    </div>
+
+                    <div class="input-group">
+                        <label>现有资金 (G)</label>
+                        <input type="number" id="budget" min="0" value="500" step="10" onchange="calculate()">
+                    </div>
+
+                    <div class="input-group">
+                        <label>可用耕地 (格)</label>
+                        <input type="number" id="tiles" min="1" value="100" onchange="calculate()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strategy -->
+            <div class="wood-panel p-6">
+                <h2 class="text-xl font-bold mb-4 border-b-2 border-brown-400 pb-2">🎯 种植策略</h2>
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-white hover:bg-opacity-30 transition">
+                        <input type="radio" name="strategy" value="seasonal" checked onchange="calculate()" class="w-5 h-5 text-green-600">
+                        <div>
+                            <span class="font-bold">🌱 连续种植策略 (默认)</span>
+                            <span class="text-xs block text-gray-700">利润再投资，持续补种。</span>
+                        </div>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-white hover:bg-opacity-30 transition">
+                        <input type="radio" name="strategy" value="single" onchange="calculate()" class="w-5 h-5 text-blue-600">
+                        <div>
+                            <span class="font-bold">🛒 单次种植策略</span>
+                            <span class="text-xs block text-gray-700">仅买一轮种子。</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Crop Constraints (Modified Table Style) -->
+            <div class="wood-panel p-6">
+                <details>
+                    <summary class="font-bold text-brown-800 cursor-pointer flex justify-between items-center">
+                        <span>⚙️ 限制单次/连种轮数</span>
+                        <span class="text-xs text-gray-600">▼</span>
+                    </summary>
+                    <div class="mt-4 max-h-60 overflow-y-auto custom-scroll border border-gray-300 rounded bg-white bg-opacity-50" id="constraintsContainer">
+                        <!-- Table Content -->
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">* 空白表示无限制，0 表示不种植</p>
+                </details>
+            </div>
+
+            <!-- Filter & Sort (Modified Table Style) -->
+            <div class="wood-panel p-6">
+                <h2 class="text-xl font-bold mb-4 border-b-2 border-brown-400 pb-2">🔍 筛选与排序</h2>
+
+                <!-- Crop Filter Table (Merged Include/Exclude) -->
+                <div class="mb-4">
+                    <label class="text-sm font-bold text-brown-800 mb-1 block">作物筛选 (包含/排除)</label>
+                    <div id="cropFilterTableContainer" class="h-48 overflow-y-auto bg-white bg-opacity-60 border border-gray-300 rounded p-0 text-xs custom-scroll">
+                        <!-- Table injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Numeric Filters Table (New) -->
+                <div class="mb-4">
+                    <label class="text-sm font-bold text-brown-800 mb-1 block">数值筛选</label>
+                    <table class="data-table">
+                        <thead>
+                        <tr >
+                            <th>指标</th>
+                            <th class="text-center w-20"> 最少 </th>
+                            <th class="text-center w-20"> 最多 </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td class="text-gray-700">利润 (G)</td>
+                            <td><input type="number" id="filterProfitMin" class="table-input" placeholder="不限" onchange="calculate()"></td>
+                            <td><input type="number" id="filterProfitMax" class="table-input" placeholder="不限" onchange="calculate()"></td>
+                        </tr>
+                        <tr>
+                            <td class="text-gray-700">播种 (次)</td>
+                            <td><input type="number" id="filterPlantingMin" class="table-input" placeholder="不限" onchange="calculate()"></td>
+                            <td><input type="number" id="filterPlantingMax" class="table-input" placeholder="不限" onchange="calculate()"></td>
+                        </tr>
+                        <tr>
+                            <td class="text-gray-700">生长 (天)</td>
+                            <td><input type="number" id="filterDaysMin" class="table-input" placeholder="> 天" onchange="calculate()"></td>
+                            <td><input type="number" id="filterDaysMax" class="table-input" placeholder="< 天" onchange="calculate()"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Sorting Table (New) -->
+                <div>
+                    <label class="text-sm font-bold text-brown-800 mb-1 block">排序设置</label>
+                    <table class="data-table">
+                        <tbody>
+                        <tr>
+                            <td class="text-gray-700 w-1/3">排序依据</td>
+                            <td>
+                                <select id="sortType" class="table-input text-left" onchange="calculate()">
+                                    <option value="profit">总利润</option>
+                                    <option value="planting">播种次数</option>
+                                    <option value="days">收获周期</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-gray-700">排序方式</td>
+                            <td>
+                                <select id="sortOrder" class="table-input text-left" onchange="calculate()">
+                                    <option value="desc">降序 ⬇️</option>
+                                    <option value="asc">升序 ⬆️</option>
+                                </select>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Fertilizer & Skills -->
+            <div class="wood-panel p-6">
+                <h2 class="text-xl font-bold mb-4 border-b-2 border-brown-400 pb-2">🧪 肥料与技能</h2>
+
+                <div class="input-group mb-4">
+                    <label>使用肥料</label>
+                    <select id="fertilizerSelect" onchange="calculate()">
+                        <option value="none">无肥料 (0g)</option>
+                        <option value="basic">初级肥料 (100g) - 售价+10%</option>
+                        <option value="quality">高级肥料 (150g) - 售价+20%</option>
+                        <option value="speed">生长激素 (100g) - 生长-10%</option>
+                        <option value="deluxe">高级生长激素 (150g) - 生长-25%</option>
+                    </select>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="perkTiller" onchange="calculate()" class="w-5 h-5 text-green-600">
+                        <span>耕种人<span class="text-xs text-gray-600 block"> (售价+10%)</span></span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="perkAgriculturist" onchange="calculate()" class="w-5 h-5 text-green-600">
+                        <span>农业学家<span class="text-xs text-gray-600 block"> (生长速度-10%)</span></span>
+                    </label>
+                </div>
+
+                <h2 class="text-xl font-bold mt-6 mb-4 border-b-2 border-brown-400 pb-2">🔓 解锁内容</h2>
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="unlockYear2" onchange="updateUI();" class="w-5 h-5 text-blue-600">
+                        <span>第二年/特殊作物 <span class="text-xs text-gray-500 block">(蒜, 红叶卷心菜, 洋蓟)</span></span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="unlockDesert" onchange="updateUI();" class="w-5 h-5 text-blue-600">
+                        <span>沙漠作物<span class="text-xs text-gray-600 block">(大黄, 杨桃, 甜菜)</span></span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="unlockStrawberry" onchange="updateUI();" class="w-5 h-5 text-red-600">
+                        <span>已有草莓种子<span class="text-xs text-gray-600 block">(通常仅复活节可买)</span></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main: Results -->
+        <div class="lg:col-span-8">
+            <div class="wood-panel p-6 min-h-full flex flex-col">
+                <div class="flex justify-between items-center mb-4 border-b-2 border-brown-400 pb-2">
+                    <h2 class="text-xl font-bold text-brown-900">🏆 方案结果</h2>
+                    <span class="text-sm text-gray-700 font-bold" id="resultCountBadge">共 0 个方案</span>
+                </div>
+
+                <div id="unifiedResultsContainer" class="space-y-4 flex-grow">
+                    <!-- All results (Single & Mixed) injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-8 text-center text-sm text-white pb-8 drop-shadow-md" style="text-shadow: 1px 1px 2px #5d4037;">
+        <p class="font-bold text-lg mb-1">Stardew Valley v1.6.8 © ConcernedApe | Website designed by Cheynne</p>
+        <p class="text-xs opacity-90 mb-2">本工具为非官方粉丝作品，与 ConcernedApe 无关。</p>
+        <p class="text-xs opacity-80">游戏素材与背景图版权归 ConcernedApe 所有 | 数据来源：Stardew Valley Wiki</p>
+    </footer>
+</div>
+
+<script>
+    // --- Data Source ---
+    const cropData = [
+        // Spring
+        { id: 'bluejazz', name: '蓝爵 (Blue Jazz)', season: 'spring', buy: 30, sell: 50, days: 7, regrow: 0, yield: 1, type: 'flower' },
+        { id: 'cauliflower', name: '花椰菜 (Cauliflower)', season: 'spring', buy: 80, sell: 175, days: 12, regrow: 0, yield: 1, type: 'veg' },
+        { id: 'greenbean', name: '青豆 (Green Bean)', season: 'spring', buy: 60, sell: 40, days: 10, regrow: 3, yield: 1, type: 'veg', note: '棚架作物' },
+        { id: 'kale', name: '甘蓝菜 (Kale)', season: 'spring', buy: 70, sell: 110, days: 6, regrow: 0, yield: 1, type: 'veg' },
+        { id: 'parsnip', name: '防风草 (Parsnip)', season: 'spring', buy: 20, sell: 35, days: 4, regrow: 0, yield: 1, type: 'veg' },
+        { id: 'potato', name: '土豆 (Potato)', season: 'spring', buy: 50, sell: 80, days: 6, regrow: 0, yield: 1.2, type: 'veg', note: '20%几率双倍' },
+        { id: 'tulip', name: '郁金香 (Tulip)', season: 'spring', buy: 20, sell: 30, days: 6, regrow: 0, yield: 1, type: 'flower' },
+        { id: 'strawberry', name: '草莓 (Strawberry)', season: 'spring', buy: 100, sell: 120, days: 8, regrow: 4, yield: 1, type: 'fruit', special: 'strawberry' },
+        { id: 'rhubarb', name: '大黄 (Rhubarb)', season: 'spring', buy: 100, sell: 220, days: 13, regrow: 0, yield: 1, type: 'fruit', special: 'desert' },
+        { id: 'garlic', name: '蒜 (Garlic)', season: 'spring', buy: 40, sell: 60, days: 4, regrow: 0, yield: 1, type: 'veg', special: 'year2' },
+
+        // Summer
+        { id: 'blueberry', name: '蓝莓 (Blueberry)', season: 'summer', buy: 80, sell: 50, days: 13, regrow: 4, yield: 3, type: 'fruit', note: '每次3个' },
+        { id: 'corn', name: '玉米 (Corn)', season: 'summer', buy: 150, sell: 50, days: 14, regrow: 4, yield: 1, type: 'veg', note: '跨季作物(夏秋)' },
+        { id: 'hops', name: '啤酒花 (Hops)', season: 'summer', buy: 60, sell: 25, days: 11, regrow: 1, yield: 1, type: 'veg', note: '棚架作物' },
+        { id: 'hotpepper', name: '辣椒 (Hot Pepper)', season: 'summer', buy: 40, sell: 40, days: 5, regrow: 3, yield: 1, type: 'fruit' },
+        { id: 'melon', name: '甜瓜 (Melon)', season: 'summer', buy: 80, sell: 250, days: 12, regrow: 0, yield: 1, type: 'fruit' },
+        { id: 'poppy', name: '虞美人花 (Poppy)', season: 'summer', buy: 100, sell: 140, days: 7, regrow: 0, yield: 1, type: 'flower' },
+        { id: 'radish', name: '萝卜 (Radish)', season: 'summer', buy: 40, sell: 90, days: 6, regrow: 0, yield: 1, type: 'veg' },
+        { id: 'redcabbage', name: '红叶卷心菜 (Red Cabbage)', season: 'summer', buy: 100, sell: 260, days: 9, regrow: 0, yield: 1, type: 'veg', special: 'year2' },
+        { id: 'starfruit', name: '杨桃 (Starfruit)', season: 'summer', buy: 400, sell: 750, days: 13, regrow: 0, yield: 1, type: 'fruit', special: 'desert' },
+        { id: 'summerspangle', name: '夏季亮片 (Summer Spangle)', season: 'summer', buy: 50, sell: 90, days: 8, regrow: 0, yield: 1, type: 'flower' },
+        { id: 'sunflower', name: '向日葵 (Sunflower)', season: 'summer', buy: 200, sell: 80, days: 8, regrow: 0, yield: 1, type: 'flower', note: '掉落种子' },
+        { id: 'tomato', name: '西红柿 (Tomato)', season: 'summer', buy: 50, sell: 60, days: 11, regrow: 4, yield: 1, type: 'veg' },
+        { id: 'wheat', name: '小麦 (Wheat)', season: 'summer', buy: 10, sell: 25, days: 4, regrow: 0, yield: 1, type: 'grain' },
+
+        // Fall
+        { id: 'amaranth', name: '苋菜 (Amaranth)', season: 'fall', buy: 70, sell: 150, days: 7, regrow: 0, yield: 1, type: 'veg' },
+        { id: 'artichoke', name: '洋蓟 (Artichoke)', season: 'fall', buy: 30, sell: 160, days: 8, regrow: 0, yield: 1, type: 'veg', special: 'year2' },
+        { id: 'beet', name: '甜菜 (Beet)', season: 'fall', buy: 20, sell: 100, days: 4, regrow: 0, yield: 1, type: 'veg', special: 'desert' },
+        { id: 'bokchoy', name: '小白菜 (Bok Choy)', season: 'fall', buy: 50, sell: 80, days: 4, regrow: 0, yield: 1, type: 'veg' },
+        { id: 'cranberries', name: '蔓越莓 (Cranberries)', season: 'fall', buy: 240, sell: 75, days: 7, regrow: 5, yield: 2, type: 'fruit', note: '每次2个' },
+        { id: 'eggplant', name: '茄子 (Eggplant)', season: 'fall', buy: 20, sell: 60, days: 5, regrow: 5, yield: 1, type: 'veg' },
+        { id: 'fairyrose', name: '玫瑰仙子 (Fairy Rose)', season: 'fall', buy: 200, sell: 290, days: 12, regrow: 0, yield: 1, type: 'flower' },
+        { id: 'grape', name: '葡萄 (Grape)', season: 'fall', buy: 60, sell: 80, days: 10, regrow: 3, yield: 1, type: 'fruit', note: '棚架作物' },
+        { id: 'pumpkin', name: '南瓜 (Pumpkin)', season: 'fall', buy: 100, sell: 320, days: 13, regrow: 0, yield: 1, type: 'veg' },
+        { id: 'yam', name: '山药 (Yam)', season: 'fall', buy: 60, sell: 160, days: 10, regrow: 0, yield: 1, type: 'veg' },
+        { id: 'corn_fall', name: '玉米 (Corn)', season: 'fall', buy: 150, sell: 50, days: 14, regrow: 4, yield: 1, type: 'veg', note: '跨季作物' }
+    ];
+
+    const fertilizers = {
+        'none': { cost: 0, growthMod: 1, qualityMod: 1 },
+        'basic': { cost: 100, growthMod: 1, qualityMod: 1.1 },
+        'quality': { cost: 150, growthMod: 1, qualityMod: 1.2 },
+        'speed': { cost: 100, growthMod: 0.9, qualityMod: 1 },
+        'deluxe': { cost: 150, growthMod: 0.75, qualityMod: 1 }
+    };
+
+    function getCropIconHtml(crop) {
+        const match = crop.name.match(/\(([^)]+)\)/);
+        let englishName = match ? match[1] : crop.name;
+        let filename = englishName.trim().replace(/ /g, '_');
+        const imageUrl = `https://zh.stardewvalleywiki.com/Special:FilePath/${filename}.png`;
+        const emoji = getEmoji(crop.type);
+
+        return `
+            <div class="crop-icon-container">
+                <img src="${imageUrl}"
+                     alt="${crop.name}"
+                     class="crop-icon-img"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                />
+                <span class="crop-emoji" style="display:none;">${emoji}</span>
+            </div>
+        `;
+    }
+
+    function getEmoji(type) {
+        switch(type) {
+            case 'veg': return '🥦';
+            case 'fruit': return '🍓';
+            case 'flower': return '🌻';
+            case 'grain': return '🌾';
+            default: return '🌱';
+        }
+    }
+
+    // --- Helper for Active Crops ---
+    function getValidCrops() {
+        const season = document.getElementById('seasonSelect').value;
+        const unlockYear2 = document.getElementById('unlockYear2').checked;
+        const unlockDesert = document.getElementById('unlockDesert').checked;
+        const unlockStrawberry = document.getElementById('unlockStrawberry').checked;
+        const currentDay = parseInt(document.getElementById('currentDay').value) || 1;
+
+        let validCrops = cropData.filter(c => c.season === season);
+        return validCrops.filter(c => {
+            if (!c.special) return true;
+            if (c.special === 'year2' && !unlockYear2) return false;
+            if (c.special === 'desert' && !unlockDesert) return false;
+            if (c.special === 'strawberry' && !unlockStrawberry && currentDay !== 13) return false;
+            return true;
+        });
+    }
+
+    // --- Panel Updates ---
+    function updateUI() {
+        updateConstraintsPanel();
+        updateCropFilterPanel();
+        calculate();
+    }
+
+    // --- Constraint Table ---
+    function updateConstraintsPanel() {
+        const container = document.getElementById('constraintsContainer');
+        const validCrops = getValidCrops();
+
+        if (validCrops.length === 0) {
+            container.innerHTML = '<p class="p-2 text-sm text-gray-500">无可用作物</p>';
+            return;
+        }
+
+        let html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>作物名称</th>
+                        <th class="text-center w-16">单次限</th>
+                        <th class="text-center w-16">连种限</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        validCrops.forEach(crop => {
+            const name = crop.name.split('(')[0];
+            html += `
+                <tr>
+                    <td class="font-bold text-brown-800">${name}</td>
+                    <td><input type="number" min="0" placeholder="-" class="table-input constraint-input" data-id="${crop.id}" data-type="single"></td>
+                    <td><input type="number" min="0" placeholder="-" class="table-input constraint-input" data-id="${crop.id}" data-type="continuous"></td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+
+        document.querySelectorAll('.constraint-input').forEach(input => input.addEventListener('change', calculate));
+    }
+
+    // --- Filter Table (Merged Include/Exclude) ---
+    function updateCropFilterPanel() {
+        const container = document.getElementById('cropFilterTableContainer');
+        const validCrops = getValidCrops();
+
+        if (validCrops.length === 0) {
+            container.innerHTML = '<p class="p-2 text-sm text-gray-500">无可用作物</p>';
+            return;
+        }
+
+        // Generate Table
+        let html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>作物名称</th>
+                        <th class="text-center w-20">✅包含</th>
+                        <th class="text-center w-20">🚫排除</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        validCrops.forEach(crop => {
+            const name = crop.name.split('(')[0];
+            html += `
+                <tr>
+                    <td class="text-gray-700">${name}</td>
+                    <td class="text-center">
+                        <input type="checkbox" value="${crop.id}" id="inc_${crop.id}" class="crop-filter-checkbox crop-include w-4 h-4 text-green-600 rounded">
+                    </td>
+                    <td class="text-center">
+                        <input type="checkbox" value="${crop.id}" id="exc_${crop.id}" class="crop-filter-checkbox crop-exclude w-4 h-4 text-red-600 rounded">
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+
+        // Add Listeners for Mutual Exclusion Logic
+        document.querySelectorAll('.crop-include').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    // If checked Include, uncheck Exclude
+                    const excludeCb = document.getElementById(`exc_${e.target.value}`);
+                    if (excludeCb) excludeCb.checked = false;
+                }
+                calculate();
+            });
+        });
+
+        document.querySelectorAll('.crop-exclude').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    // If checked Exclude, uncheck Include
+                    const includeCb = document.getElementById(`inc_${e.target.value}`);
+                    if (includeCb) includeCb.checked = false;
+                }
+                calculate();
+            });
+        });
+    }
+
+    function getConstraints() {
+        const constraints = {};
+        document.querySelectorAll('.constraint-input').forEach(input => {
+            const id = input.dataset.id;
+            const type = input.dataset.type;
+            // New Logic: Check if empty string or just whitespace
+            const rawValue = input.value.trim();
+            let value;
+
+            if (rawValue === '') {
+                value = -1; // -1 means Unlimited
+            } else {
+                value = parseInt(rawValue);
+                if (isNaN(value)) value = -1; // Fallback
+            }
+
+            if (!constraints[id]) constraints[id] = { single: -1, continuous: -1 };
+            constraints[id][type] = value;
+        });
+        return constraints;
+    }
+
+    function getSelectedFilterCrops() {
+        const selected = [];
+        document.querySelectorAll('.crop-include:checked').forEach(cb => selected.push(cb.value));
+        return selected;
+    }
+
+    function getSelectedExcludeCrops() {
+        const selected = [];
+        document.querySelectorAll('.crop-exclude:checked').forEach(cb => selected.push(cb.value));
+        return selected;
+    }
+
+    function calculate() {
+        // --- Inputs ---
+        const currentDay = parseInt(document.getElementById('currentDay').value) || 1;
+        const budget = parseFloat(document.getElementById('budget').value) || 0;
+        const tiles = parseInt(document.getElementById('tiles').value) || 0;
+        const hasTiller = document.getElementById('perkTiller').checked;
+        const hasAgri = document.getElementById('perkAgriculturist').checked;
+        const strategy = document.querySelector('input[name="strategy"]:checked').value;
+        const fertilizerType = document.getElementById('fertilizerSelect').value;
+        const fertilizer = fertilizers[fertilizerType];
+        const constraints = getConstraints();
+        const validCrops = getValidCrops();
+
+        // --- Filter Inputs ---
+        const filterProfitMin = parseFloat(document.getElementById('filterProfitMin').value);
+        const filterProfitMax = parseFloat(document.getElementById('filterProfitMax').value);
+        const filterPlantingMin = parseInt(document.getElementById('filterPlantingMin').value);
+        const filterPlantingMax = parseInt(document.getElementById('filterPlantingMax').value);
+        const filterDaysMin = parseInt(document.getElementById('filterDaysMin').value);
+        const filterDaysMax = parseInt(document.getElementById('filterDaysMax').value);
+        const selectedFilterCrops = getSelectedFilterCrops();
+        const selectedExcludeCrops = getSelectedExcludeCrops();
+
+        // --- Sort Inputs ---
+        const sortType = document.getElementById('sortType').value;
+        const sortOrder = document.getElementById('sortOrder').value;
+
+        document.getElementById('daysRemainingDisplay').innerText = 28 - currentDay;
+
+        // --- Core Calc ---
+        const cropStats = validCrops.map(crop => {
+            let sellPrice = crop.sell;
+            if (hasTiller) sellPrice = Math.floor(sellPrice * 1.1);
+            sellPrice = Math.floor(sellPrice * fertilizer.qualityMod);
+
+            let growthMod = fertilizer.growthMod;
+            if (hasAgri) growthMod -= 0.1;
+            let growthDays = Math.max(1, Math.floor(crop.days * growthMod));
+            const unitInitialCost = crop.buy + fertilizer.cost;
+
+            if (currentDay + growthDays > 28) return null;
+
+            let totalRevenueOneTile = 0;
+            let totalCostOneTile = 0;
+            let harvestCount = 0;
+            let plantingCount = 0;
+            let note = "";
+
+            const cropConstraint = constraints[crop.id] || { single: -1, continuous: -1 };
+            const limit = strategy === 'single' ? cropConstraint.single : cropConstraint.continuous;
+
+            // If limit is 0, user wants 0 rounds. Explicit disable.
+            if (limit === 0) return null;
+
+            if (crop.regrow > 0) {
+                const firstHarvestDay = currentDay + growthDays;
+                if (firstHarvestDay <= 28) {
+                    let potentialHarvests = 1;
+                    const daysAfterFirst = 28 - firstHarvestDay;
+                    potentialHarvests += Math.floor(daysAfterFirst / crop.regrow);
+
+                    // Logic: if limit is -1 (unlimited), use potential. Else use min(potential, limit).
+                    harvestCount = (limit === -1) ? potentialHarvests : Math.min(potentialHarvests, limit);
+                }
+                plantingCount = 1;
+                totalCostOneTile = unitInitialCost;
+                totalRevenueOneTile = harvestCount * sellPrice * crop.yield;
+                note = `收割 ${harvestCount} 次`;
+            } else {
+                if (strategy === 'single') {
+                    // Single Strategy typically means 1 round max.
+                    // But if limit is set, maybe user wants 0 rounds (handled above).
+                    // If limit > 1? Strategy name implies single. So we clamp to 1?
+                    // "Single Planting Strategy" usually implies 1 batch.
+                    // But if user sets limit to 5, it doesn't make sense for single strategy.
+                    // So we stick to 1 round unless limit is 0.
+                    harvestCount = 1;
+                    plantingCount = 1;
+
+                    totalCostOneTile = unitInitialCost;
+                    totalRevenueOneTile = harvestCount * sellPrice * crop.yield;
+                    note = `单次种植 1 轮`;
+                } else {
+                    let potentialRounds = Math.floor((28 - currentDay) / growthDays);
+
+                    harvestCount = (limit === -1) ? potentialRounds : Math.min(potentialRounds, limit);
+
+                    if (harvestCount < 1) return null;
+                    plantingCount = harvestCount;
+                    totalCostOneTile = (crop.buy * harvestCount) + fertilizer.cost;
+                    totalRevenueOneTile = harvestCount * sellPrice * crop.yield;
+                    note = `连种 ${harvestCount} 轮`;
+                }
+            }
+
+            return {
+                ...crop,
+                growthDays,
+                unitInitialCost,
+                netProfitOneTile: totalRevenueOneTile - totalCostOneTile,
+                harvestCount,
+                plantingCount,
+                note,
+                sellPriceCalculated: sellPrice
+            };
+        }).filter(item => item !== null && item.harvestCount > 0);
+
+        // --- Generate All Valid Strategies ---
+        let rawStrategies = [];
+
+        // 1. Single Strategies
+        cropStats.forEach(stat => {
+            const maxBuy = Math.floor(budget / stat.unitInitialCost);
+            const quantity = Math.min(maxBuy, tiles);
+            if (quantity > 0) {
+                let displayNote = stat.note;
+                if (strategy === 'seasonal' && stat.regrow === 0 && stat.harvestCount > 1) {
+                    displayNote += ` (每轮 ${quantity} 个)`;
+                }
+                rawStrategies.push({
+                    id: stat.id,
+                    name: stat.name,
+                    type: 'single',
+                    netProfit: stat.netProfitOneTile * quantity,
+                    initialCost: quantity * stat.unitInitialCost,
+                    quantity: quantity,
+                    plantingCount: stat.plantingCount,
+                    growthDays: stat.growthDays,
+                    roi: (stat.netProfitOneTile * quantity) / (quantity * stat.unitInitialCost) * 100,
+                    components: [{...stat, quantity}],
+                    displayData: { ...stat, quantity, initialCost: quantity * stat.unitInitialCost, note: displayNote }
+                });
+            }
+        });
+
+        // 2. Mixed Strategies
+        for (let i = 0; i < cropStats.length; i++) {
+            const primary = cropStats[i];
+            for (let j = 0; j < cropStats.length; j++) {
+                const filler = cropStats[j];
+                if (filler.unitInitialCost > primary.unitInitialCost) continue;
+                if (primary.id === filler.id) continue;
+
+                const costDiff = primary.unitInitialCost - filler.unitInitialCost;
+                let qA = Math.floor((budget - tiles * filler.unitInitialCost) / costDiff);
+                if (qA < 0) qA = 0; if (qA > tiles) qA = tiles;
+                let qB = tiles - qA;
+
+                if (qA * primary.unitInitialCost + qB * filler.unitInitialCost > budget) { qA--; qB++; }
+                if (qA < 0) { qA = 0; qB = Math.floor(budget / filler.unitInitialCost); }
+                if (qA <= 0 && qB <= 0) continue;
+
+                let comps = [];
+                if (qA > 0) comps.push({ ...primary, quantity: qA });
+                if (qB > 0) comps.push({ ...filler, quantity: qB });
+
+                let currentCost = (qA * primary.unitInitialCost) + (qB * filler.unitInitialCost);
+                let remainingBudget = budget - currentCost;
+
+                if (comps.length > 0 && remainingBudget > 0) {
+                    comps.sort((a,b) => a.netProfitOneTile - b.netProfitOneTile);
+                    for (let k = 0; k < comps.length; k++) {
+                        let comp = comps[k];
+                        let bestUpgrade = null;
+                        for (let u = 0; u < cropStats.length; u++) {
+                            const cand = cropStats[u];
+                            if (cand.netProfitOneTile <= comp.netProfitOneTile) continue;
+                            const diff = cand.unitInitialCost - comp.unitInitialCost;
+                            if (diff > remainingBudget) continue;
+                            bestUpgrade = { ...cand, costDiff: diff };
+                        }
+                        if (bestUpgrade) {
+                            let swap = comp.quantity;
+                            if (bestUpgrade.costDiff > 0) swap = Math.min(swap, Math.floor(remainingBudget / bestUpgrade.costDiff));
+                            if (swap > 0) {
+                                comp.quantity -= swap;
+                                remainingBudget -= (swap * bestUpgrade.costDiff);
+                                const ex = comps.find(c => c.id === bestUpgrade.id);
+                                if (ex) ex.quantity += swap; else comps.push({ ...bestUpgrade, quantity: swap });
+                            }
+                        }
+                    }
+                }
+
+                comps = comps.filter(c => c.quantity > 0);
+                if (comps.length >= 2) {
+                    let rev = 0, cost = 0, maxPlant = 0, maxDays = 0;
+                    let displayComps = [];
+                    comps.sort((a,b) => b.quantity - a.quantity);
+                    comps.forEach(c => {
+                        rev += c.netProfitOneTile * c.quantity;
+                        cost += c.unitInitialCost * c.quantity;
+                        maxPlant = Math.max(maxPlant, c.plantingCount);
+                        maxDays = Math.max(maxDays, c.growthDays);
+
+                        let note = c.note;
+                        if (strategy === 'seasonal' && c.regrow === 0 && c.harvestCount > 1) {
+                            note += ` (每轮 ${c.quantity} 个)`;
+                        }
+                        displayComps.push({...c, note});
+                    });
+
+                    let names = displayComps.map(c => c.name.split(' ')[0]);
+
+                    rawStrategies.push({
+                        name: `组合: ${names.join(' + ')}`,
+                        type: 'mixed',
+                        netProfit: rev,
+                        initialCost: cost,
+                        components: displayComps,
+                        plantingCount: maxPlant,
+                        growthDays: maxDays,
+                        roi: (rev/cost) * 100
+                    });
+                }
+            }
+        }
+
+        // Deduplicate
+        let uniqueStrategies = [];
+        let seen = new Set();
+        rawStrategies.forEach(s => {
+            const comps = s.type==='single' ? s.components : [...s.components].sort((a,b) => a.id.localeCompare(b.id));
+            let key = comps.map(c => `${c.id}:${c.quantity}`).join('|');
+            if (!seen.has(key)) { uniqueStrategies.push(s); seen.add(key); }
+        });
+
+        // --- Apply Filters ---
+        let filteredStrategies = uniqueStrategies.filter(s => {
+            if (s.netProfit < 0) return false;
+
+            if (!isNaN(filterProfitMin) && s.netProfit < filterProfitMin) return false;
+            if (!isNaN(filterProfitMax) && s.netProfit > filterProfitMax) return false;
+
+            if (!isNaN(filterPlantingMin) && s.plantingCount < filterPlantingMin) return false;
+            if (!isNaN(filterPlantingMax) && s.plantingCount > filterPlantingMax) return false;
+
+            if (!isNaN(filterDaysMin)) {
+                if (s.type === 'single') { if (s.growthDays <= filterDaysMin) return false; }
+                else { if (s.components.some(c => c.growthDays <= filterDaysMin)) return false; }
+            }
+            if (!isNaN(filterDaysMax)) {
+                if (s.type === 'single') { if (s.growthDays >= filterDaysMax) return false; }
+                else { if (s.components.some(c => c.growthDays >= filterDaysMax)) return false; }
+            }
+
+            // Exclude Filter (New Logic)
+            if (selectedExcludeCrops.length > 0) {
+                const hasExcluded = s.type === 'single'
+                    ? selectedExcludeCrops.includes(s.id)
+                    : s.components.some(c => selectedExcludeCrops.includes(c.id));
+                if (hasExcluded) return false;
+            }
+
+            // Include Filter
+            if (selectedFilterCrops.length > 0) {
+                const hasMatch = s.type === 'single'
+                    ? selectedFilterCrops.includes(s.id)
+                    : s.components.some(c => selectedFilterCrops.includes(c.id));
+                if (!hasMatch) return false;
+            }
+
+            return true;
+        });
+
+        // --- Sorting ---
+        filteredStrategies.sort((a, b) => {
+            let valA, valB;
+            switch(sortType) {
+                case 'planting': valA = a.plantingCount; valB = b.plantingCount; break;
+                case 'days': valA = a.growthDays; valB = b.growthDays; break;
+                case 'profit': default: valA = a.netProfit; valB = b.netProfit; break;
+            }
+
+            if (sortOrder === 'asc') return valA - valB;
+            return valB - valA;
+        });
+
+        // --- Render ---
+        const container = document.getElementById('unifiedResultsContainer');
+        container.innerHTML = '';
+        document.getElementById('resultCountBadge').innerText = `共 ${filteredStrategies.length} 个方案`;
+
+        if (filteredStrategies.length === 0) {
+            container.innerHTML = `<div class="p-4 text-center text-gray-500">没有符合条件的方案。</div>`;
+        } else {
+            filteredStrategies.forEach((s, idx) => {
+                const formatMoney = (n) => n.toLocaleString('en-US');
+                const profitSign = s.netProfit > 0 ? '+' : '';
+                const profitClass = s.netProfit > 0 ? 'text-purple-700' : 'text-red-700';
+                let rankClass = idx < 3 ? `rank-${idx+1}` : 'rank-other';
+
+                if (s.type === 'mixed') {
+                    const totalQty = s.components.reduce((sum, c) => sum + c.quantity, 0);
+                    let detailsHtml = s.components.map(c => `
+                        <div class="flex justify-between items-center bg-white p-2 rounded mb-1 border border-purple-100">
+                            <div class="flex items-center gap-2">
+                                 <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-lg border border-gray-300">
+                                    ${getCropIconHtml(c)}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-sm text-gray-800">${c.name}</div>
+                                    <div class="text-xs text-gray-500">${c.note}</div>
+                                </div>
+                            </div>
+                            <div class="text-right text-sm">
+                                <div class="font-bold text-blue-700">x${c.quantity}</div>
+                                <div class="text-xs text-red-500">投入: ${formatMoney(c.quantity * c.unitInitialCost)}g</div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    const html = `
+                    <div class="strategy-card">
+                        <details class="group">
+                            <summary class="strategy-summary p-4 rounded-lg flex flex-col md:flex-row gap-4 items-center cursor-pointer relative">
+                                <div class="absolute top-2 left-2 rank-badge ${rankClass}">#${idx+1}</div>
+                                <div class="flex-shrink-0 w-full md:w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-2xl border-2 border-purple-200 ml-8 md:ml-0">⚖️</div>
+                                <div class="flex-grow w-full">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h3 class="font-bold text-lg text-purple-900">${s.name}</h3>
+                                            <div class="text-xs text-gray-600 mt-1 flex gap-2">
+                                                <span>混合策略</span>
+                                                <span class="bg-gray-200 px-1 rounded">播种: ${s.plantingCount}次</span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-xl font-bold ${profitClass}">${profitSign}${formatMoney(Math.floor(s.netProfit))}g</div>
+                                            <div class="text-xs text-gray-500">预期净利</div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm bg-white bg-opacity-60 p-2 rounded border border-purple-100">
+                                        <div><span class="block text-gray-500 text-xs">作物种类</span><span class="font-bold text-blue-800">${s.components.length} 种</span></div>
+                                        <div><span class="block text-gray-500 text-xs">总种植数</span><span class="font-bold text-brown-800">${totalQty} 个</span></div>
+                                        <div><span class="block text-gray-500 text-xs">初始投入</span><span class="font-bold text-red-700">-${formatMoney(s.initialCost)}g</span></div>
+                                        <div><span class="block text-gray-500 text-xs">投资回报率</span><span class="font-bold ${s.roi > 200 ? 'text-green-600' : 'text-blue-600'}">${Math.floor(s.roi)}%</span></div>
+                                    </div>
+                                </div>
+                            </summary>
+                            <div class="strategy-details">
+                                <h4 class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">种植详情</h4>
+                                ${detailsHtml}
+                            </div>
+                        </details>
+                    </div>`;
+                    container.innerHTML += html;
+                } else {
+                    const r = s.displayData;
+                    const singleProfitClass = s.netProfit > 0 ? 'text-green-700' : 'text-red-700';
+                    const html = `
+                        <div class="crop-card p-4 rounded-lg flex flex-col md:flex-row gap-4 items-center">
+                             <div class="absolute top-2 left-2 rank-badge ${rankClass}">#${idx+1}</div>
+                            <div class="flex-shrink-0 w-full md:w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-2xl border-2 border-gray-300 ml-8 md:ml-0">
+                                ${getCropIconHtml(r)}
+                            </div>
+                            <div class="flex-grow w-full">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-bold text-lg text-brown-900">${r.name}</h3>
+                                        <div class="text-xs text-gray-600 mt-1 flex flex-wrap gap-2">
+                                            <span class="bg-gray-200 px-2 py-0.5 rounded">单价: ${r.unitInitialCost}g</span>
+                                            <span class="bg-gray-200 px-2 py-0.5 rounded">播种: ${s.plantingCount}次</span>
+                                            <span class="bg-gray-200 px-2 py-0.5 rounded">生长: ${r.growthDays}天</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xl font-bold ${singleProfitClass}">${profitSign}${formatMoney(Math.floor(s.netProfit))}g</div>
+                                        <div class="text-xs text-gray-500">本季净利润</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm bg-white bg-opacity-50 p-2 rounded">
+                                    <div><span class="block text-gray-500 text-xs">购买数量</span><span class="font-bold text-blue-800">${r.quantity} 个</span></div>
+                                    <div><span class="block text-gray-500 text-xs">种植策略</span><span class="font-bold text-brown-800">${r.note}</span></div>
+                                    <div><span class="block text-gray-500 text-xs">初始投入</span><span class="font-bold text-red-700">-${formatMoney(r.initialCost)}g</span></div>
+                                    <div><span class="block text-gray-500 text-xs">投资回报率</span><span class="font-bold ${s.roi > 200 ? 'text-green-600' : 'text-blue-600'}">${Math.floor(s.roi)}%</span></div>
+                                </div>
+                                 ${r.note.includes('棚架') ? '<p class="text-xs text-red-500 mt-1">⚠️ 注意：此为棚架作物。</p>' : ''}
+                                 ${r.quantity < tiles && r.initialCost >= budget ? '<p class="text-xs text-orange-500 mt-1">💡 资金受限。</p>' : ''}
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                }
+            });
+        }
+    }
+
+    // Initial run
+    updateUI();
+</script>
+
+</body>
+</html>
